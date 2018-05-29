@@ -77,6 +77,7 @@ func Add(r *http.Request) (string, int64) {
 	_, err = o.Insert(originImage)
 	if err != nil {
 		beego.Error("Insert originImage Error: ", err)
+		return "", -1
 	}
 
 	generatedImage := new(Image)

@@ -44,6 +44,8 @@ import (
 	"regexp"
 	"strings"
 
+	"golang.org/x/image/math/fixed"
+
 	"github.com/astaxie/beego"
 	"github.com/golang/freetype"
 	"github.com/nfnt/resize"
@@ -52,7 +54,7 @@ import (
 
 var (
 	dpi      = flag.Float64("dpi", 72, "screen resolution in Dots Per Inch")
-	fontfile = flag.String("fontfile", "src/font/gbk.ttf", "filename of the ttf font")
+	fontfile = flag.String("fontfile", "src/font/black.ttf", "filename of the ttf font")
 	hinting  = flag.String("hinting", "none", "none | full")
 	size     = flag.Float64("size", 70, "font size in points")
 	spacing  = flag.Float64("spacing", 1.2, "line spacing (e.g. 2 means double spaced)")
@@ -70,6 +72,8 @@ const (
 func Save(r *http.Request) (string, error) {
 	image, head, err := r.FormFile("image")
 	if err != nil {
+		beego.Error("Get image Error: ", err)
+
 		return "", err
 	}
 	defer image.Close()
@@ -92,7 +96,7 @@ func Save(r *http.Request) (string, error) {
 	}
 
 	// Create File
-	fileName := r.FormValue("name") + "_" + Now() + suffix
+	fileName := Now() + suffix
 	filePath := fmt.Sprintf("src/images/origin/" + fileName)
 
 	file, err := os.Create(filePath)
@@ -132,6 +136,8 @@ func Generate(fileName string, texts []string) {
 		beego.Error("Decode Error: ", err)
 	}
 
+	srcImg = cutWhiteSpace(srcImg)
+
 	srcImg = resize.Resize(0, ih, srcImg, resize.Lanczos3)
 
 	// Initialize the context.
@@ -169,7 +175,8 @@ func Generate(fileName string, texts []string) {
 	// Set Font.
 	c.SetFont(f)
 	// Set FontSize.
-	c.SetFontSize(*size)
+	fontsize := fontSize(texts)
+	c.SetFontSize(fontsize)
 	// Set the clip rectangle for drawing.
 	c.SetClip(rgba.Bounds())
 	// Set the destination image for draw operations.
@@ -186,16 +193,14 @@ func Generate(fileName string, texts []string) {
 
 	// Draw the text.
 	pt := freetype.Pt(50, 720+int(c.PointToFixed(*size)>>6))
-	if len(texts) == 2 {
-		pt.Y += c.PointToFixed(*size**spacing) / 2
-	}
+	pt = changeY(c, pt, texts, fontsize)
 	for _, v := range texts {
-		reg := regexp.MustCompile(`[a-z|0-9]`)
+		reg := regexp.MustCompile(`[a-z|0-9|!|?|,|.|;]`)
 		letter := reg.FindAllString(v, -1)
 
 		chineseLen := len([]rune(v)) - len(letter)
 
-		width := float64((1000 - (int(*size)*len(letter)/2 + int(*size)*chineseLen)) / 2)
+		width := float64((1000 - (int(fontsize)*len(letter)/2 + int(fontsize)*chineseLen)) / 2)
 		pt.X = c.PointToFixed(width)
 
 		for _, s := range []string{v} {
@@ -206,7 +211,7 @@ func Generate(fileName string, texts []string) {
 			}
 		}
 
-		pt.Y += c.PointToFixed(*size * *spacing)
+		pt.Y += c.PointToFixed(fontsize * *spacing)
 	}
 
 	// Make Dir
@@ -238,4 +243,94 @@ func Generate(fileName string, texts []string) {
 	}
 
 	beego.Debug("Wrote out.png OK.")
+}
+
+func fontSize(texts []string) float64 {
+	switch len(texts) {
+	case 1:
+		return *size + 35.0
+	case 2:
+		return *size + 25.0
+	default:
+		return *size
+	}
+}
+
+func changeY(c *freetype.Context, pt fixed.Point26_6, texts []string, fontSize float64) fixed.Point26_6 {
+	switch len(texts) {
+	case 1:
+		pt.Y += c.PointToFixed(*size * *spacing)
+	case 2:
+		pt.Y += c.PointToFixed(*size**spacing) / 2
+	default:
+	}
+
+	return pt
+}
+
+func cutWhiteSpace(src image.Image) image.Image {
+	size := src.Bounds().Size()
+	var (
+		left   int
+		right  int
+		top    int
+		bottom int
+	)
+
+	beego.Debug(size)
+
+	for i := 1; i < size.X-1; i++ {
+		for j := 1; j < size.Y-1; j++ {
+			r, g, b, _ := src.At(i, j).RGBA()
+			if r < 65000 && g < 65000 && b < 65000 {
+				left = i
+
+				goto top
+			}
+		}
+	}
+
+top:
+	for j := 1; j < size.Y-1; j++ {
+		for i := 1; i < size.X-1; i++ {
+			r, g, b, _ := src.At(i, j).RGBA()
+			if r < 65000 && g < 65000 && b < 65000 {
+				top = j
+
+				goto right
+			}
+		}
+	}
+
+right:
+	for i := size.X - 1; i > 1; i-- {
+		for j := size.Y - 1; j > 1; j-- {
+			r, g, b, _ := src.At(i, j).RGBA()
+			if r < 65000 && g < 65000 && b < 65000 {
+				right = i
+
+				goto bottom
+			}
+		}
+	}
+
+bottom:
+	for j := size.Y - 1; j > 1; j-- {
+		for i := 1; i < size.X-1; i++ {
+			r, g, b, _ := src.At(i, j).RGBA()
+			if r < 65000 && g < 65000 && b < 65000 {
+				bottom = j
+
+				goto finish
+			}
+		}
+	}
+
+finish:
+	beego.Debug(left, top, right, bottom)
+
+	img := src.(*image.YCbCr)
+	subImg := img.SubImage(image.Rect(left, top, right, bottom)).(*image.YCbCr)
+
+	return subImg
 }
