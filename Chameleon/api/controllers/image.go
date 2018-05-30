@@ -33,6 +33,7 @@ import (
 	"github.com/astaxie/beego"
 
 	"go_trainning/Chameleon/api/models"
+	"go_trainning/Chameleon/api/utils"
 )
 
 // ImageController - Operations about image.
@@ -53,7 +54,22 @@ func (ic *ImageController) GetAll() {
 
 // Generate the image.
 func (ic *ImageController) Generate() {
-	path, id := models.Add(ic.Ctx.Request)
+	var (
+		path string
+		id   int64
+	)
+
+	err := utils.MsgSecCheck(ic.Ctx.Request.FormValue("texts"))
+	if err != nil {
+		ic.Data["json"] = map[string]interface{}{
+			"imageId": 0,
+			"image":   "",
+		}
+
+		goto finish
+	}
+
+	path, id = models.Add(ic.Ctx.Request)
 	if id == -1 {
 		ic.Data["json"] = map[string]interface{}{
 			"imageId": -1,
