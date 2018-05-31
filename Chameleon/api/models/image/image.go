@@ -23,7 +23,7 @@ type Image struct {
 	Userid  int       `json:"userID" orm:"index"`
 	Name    string    `json:"name"`
 	Path    string    `json:"path"`
-	Created time.Time `orm:"auto_now_add;type(datetime)"`
+	Created time.Time `json:"created"       orm:"auto_now_add;type(datetime)"`
 }
 
 func init() {
@@ -43,7 +43,7 @@ func Add(r *http.Request) (string, int64) {
 	var texts []string
 	json.Unmarshal([]byte(r.FormValue("texts")), &texts)
 
-	utils.Generate(fileName, texts)
+	utils.Generate(fileName, texts, r.FormValue("position"))
 
 	generatedPath := "https://www.doublewoodh.club/images/generated/" + fileName
 	originPath := "https://www.doublewoodh.club/images/origin/" + fileName

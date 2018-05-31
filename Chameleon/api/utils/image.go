@@ -95,7 +95,7 @@ func Save(r *http.Request) (string, error) {
 }
 
 // Generate an image with text.
-func Generate(fileName string, texts []string) {
+func Generate(fileName string, texts []string, wordPosition string) {
 	srcFile, err := os.Open("src/images/origin/" + fileName)
 	if err != nil {
 		beego.Error("Open Error: ", err)
@@ -126,11 +126,11 @@ func Generate(fileName string, texts []string) {
 	}
 
 	// Draw the white image.
-	if srcImg.Bounds().Size().X >= fw {
-		draw.Draw(rgba, rgba.Bounds(), srcImg, srcImg.Bounds().Min, draw.Over)
-	} else {
-		draw.Draw(rgba, rgba.Bounds(), srcImg, image.Pt((srcImg.Bounds().Size().X-fw)/2, 0), draw.Over)
+	imageY := 0
+	if wordPosition == "top" {
+		imageY = -300
 	}
+	draw.Draw(rgba, rgba.Bounds(), srcImg, image.Pt((srcImg.Bounds().Size().X-fw)/2, imageY), draw.Over)
 
 	// Read the font data.
 	fontBytes, err := ioutil.ReadFile(*fontfile)
@@ -168,7 +168,11 @@ func Generate(fileName string, texts []string) {
 	}
 
 	// Draw the text.
-	pt := freetype.Pt(50, 720+int(c.PointToFixed(*size)>>6))
+	wordY := 720
+	if wordPosition == "top" {
+		wordY = 20
+	}
+	pt := freetype.Pt(50, wordY+int(c.PointToFixed(*size)>>6))
 	pt = changeY(c, pt, texts, fontsize)
 	for _, v := range texts {
 		reg := regexp.MustCompile(`[a-z|0-9|!|?|,|.|;]`)
