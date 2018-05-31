@@ -6,9 +6,11 @@
 package controllers
 
 import (
+	"encoding/json"
+
 	"github.com/astaxie/beego"
 
-	"go_trainning/Chameleon/api/models"
+	"go_trainning/Chameleon/api/models/image"
 	"go_trainning/Chameleon/api/utils"
 )
 
@@ -17,9 +19,14 @@ type ImageController struct {
 	beego.Controller
 }
 
-// GetAll - Get all images.
+// GetAll - Get all images by UserID.
 func (ic *ImageController) GetAll() {
-	images := models.GetAll()
+	var body map[string]int64
+
+	json.Unmarshal(ic.Ctx.Input.RequestBody, &body)
+	userID := body["userID"]
+
+	images := image.GetByUserID(userID)
 
 	ic.Data["json"] = map[string]interface{}{
 		"images": images,
@@ -45,7 +52,7 @@ func (ic *ImageController) Generate() {
 		goto finish
 	}
 
-	path, id = models.Add(ic.Ctx.Request)
+	path, id = image.Add(ic.Ctx.Request)
 	if id == -1 {
 		ic.Data["json"] = map[string]interface{}{
 			"imageId": -1,

@@ -13,6 +13,7 @@ import (
 	"net/http"
 )
 
+// MsgSecCheck - Check the sensitive information.
 func MsgSecCheck(texts string) error {
 	var (
 		getResult  map[string]interface{}
@@ -55,7 +56,7 @@ func MsgSecCheck(texts string) error {
 
 	json.Unmarshal(postRespBody, &postResult)
 
-	if postResult["errcode"] != 0 {
+	if postResult["errcode"] != 0.0 {
 		return errors.New("Content is risky")
 	}
 

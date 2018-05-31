@@ -10,20 +10,18 @@ import (
 	"github.com/astaxie/beego/orm"
 	_ "github.com/go-sql-driver/mysql"
 
-	"go_trainning/Chameleon/api/models"
+	"go_trainning/Chameleon/api/models/image"
+	"go_trainning/Chameleon/api/models/user"
 	_ "go_trainning/Chameleon/api/routers"
 )
 
 func init() {
 	orm.RegisterDriver("mysql", orm.DRMySQL)
 
-	orm.RegisterModel(new(models.Image))
+	orm.RegisterModel(new(image.Image))
+	orm.RegisterModel(new(user.User))
 
 	orm.RegisterDataBase("default", "mysql", "chameleon:chameleon@/chameleon?charset=utf8")
-
-	// if err := orm.RunSyncdb("defalut", true, true); err != nil {
-	// 	panic(err)
-	// }
 }
 
 func main() {

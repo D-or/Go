@@ -253,8 +253,6 @@ func cutWhiteSpace(src image.Image) image.Image {
 		bottom int
 	)
 
-	beego.Debug(size)
-
 	for i := 1; i < size.X-1; i++ {
 		for j := 1; j < size.Y-1; j++ {
 			r, g, b, _ := src.At(i, j).RGBA()
@@ -303,8 +301,6 @@ bottom:
 	}
 
 finish:
-	beego.Debug(left, top, right, bottom)
-
 	img := src.(*image.YCbCr)
 	subImg := img.SubImage(image.Rect(left, top, right, bottom)).(*image.YCbCr)
 

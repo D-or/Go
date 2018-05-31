@@ -12,6 +12,10 @@ import (
 )
 
 func init() {
-	beego.Router("/image/getall", &controllers.ImageController{}, "get:GetAll")
+	// user api
+	beego.Router("/user/login", &controllers.UserController{}, "post:Login")
+
+	// image api
+	beego.Router("/image/getall", &controllers.ImageController{}, "post:GetAll")
 	beego.Router("/image/generate", &controllers.ImageController{}, "post:Generate")
 }
