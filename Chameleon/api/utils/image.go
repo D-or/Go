@@ -24,6 +24,7 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/golang/freetype"
+	"github.com/golang/freetype/truetype"
 	"github.com/nfnt/resize"
 	"golang.org/x/image/font"
 )
@@ -34,7 +35,7 @@ var (
 	hinting  = flag.String("hinting", "none", "none | full")
 	size     = flag.Float64("size", 70, "font size in points")
 	spacing  = flag.Float64("spacing", 1.2, "line spacing (e.g. 2 means double spaced)")
-	wonb     = flag.Bool("whiteonblack", false, "white text on a black background")
+	wonb     = flag.Bool("whiteonblack", true, "white text on a black background")
 )
 
 const (
@@ -114,10 +115,27 @@ func Generate(fileName string, texts []string, wordPosition string) {
 
 	srcImg = cutWhiteSpace(srcImg)
 
+	var (
+		pt        fixed.Point26_6
+		wordY     int
+		fontsize  float64
+		c         *freetype.Context
+		f         *truetype.Font
+		fontBytes []byte
+		imageY    int
+		rgba      *image.RGBA
+	)
+
+	if wordPosition == "inside" {
+		rgba = writeInImage(texts, srcImg)
+
+		goto save
+	}
+
 	srcImg = resize.Resize(0, ih, srcImg, resize.Lanczos3)
 
 	// Initialize the context.
-	rgba := image.NewRGBA(image.Rect(0, 0, fw, fh))
+	rgba = image.NewRGBA(image.Rect(0, 0, fw, fh))
 
 	for i := 0; i < fw; i++ {
 		for j := 0; j < fh; j++ {
@@ -126,32 +144,32 @@ func Generate(fileName string, texts []string, wordPosition string) {
 	}
 
 	// Draw the white image.
-	imageY := 0
+	imageY = 0
 	if wordPosition == "top" {
 		imageY = -300
 	}
 	draw.Draw(rgba, rgba.Bounds(), srcImg, image.Pt((srcImg.Bounds().Size().X-fw)/2, imageY), draw.Over)
 
 	// Read the font data.
-	fontBytes, err := ioutil.ReadFile(*fontfile)
+	fontBytes, err = ioutil.ReadFile(*fontfile)
 	if err != nil {
 		beego.Error("ReadFile Error: ", err)
 		return
 	}
-	f, err := freetype.ParseFont(fontBytes)
+	f, err = freetype.ParseFont(fontBytes)
 	if err != nil {
 		beego.Error("ParseFont Error: ", err)
 		return
 	}
 
 	// Create a new Context.
-	c := freetype.NewContext()
+	c = freetype.NewContext()
 	// Set the screen resolution in dots per inch.
 	c.SetDPI(*dpi)
 	// Set Font.
 	c.SetFont(f)
 	// Set FontSize.
-	fontsize := fontSize(texts)
+	fontsize = fontSize(texts)
 	c.SetFontSize(fontsize)
 	// Set the clip rectangle for drawing.
 	c.SetClip(rgba.Bounds())
@@ -168,11 +186,11 @@ func Generate(fileName string, texts []string, wordPosition string) {
 	}
 
 	// Draw the text.
-	wordY := 720
+	wordY = 720
 	if wordPosition == "top" {
 		wordY = 20
 	}
-	pt := freetype.Pt(50, wordY+int(c.PointToFixed(*size)>>6))
+	pt = freetype.Pt(50, wordY+int(c.PointToFixed(*size)>>6))
 	pt = changeY(c, pt, texts, fontsize)
 	for _, v := range texts {
 		reg := regexp.MustCompile(`[a-z|0-9|!|?|,|.|;]`)
@@ -194,6 +212,7 @@ func Generate(fileName string, texts []string, wordPosition string) {
 		pt.Y += c.PointToFixed(fontsize * *spacing)
 	}
 
+save:
 	// Make Dir
 	if err := os.MkdirAll("/root/doublewoodh/generation/src/images/generated", os.ModePerm); err != nil {
 		beego.Error("Mkdir 'generated' Error: ", err)
@@ -309,4 +328,85 @@ finish:
 	subImg := img.SubImage(image.Rect(left, top, right, bottom)).(*image.YCbCr)
 
 	return subImg
+}
+
+func writeInImage(texts []string, src image.Image) *image.RGBA {
+	src = resize.Resize(fw, 0, src, resize.Lanczos3)
+
+	srcSize := src.Bounds().Size()
+
+	beego.Debug(srcSize)
+
+	rgba := image.NewRGBA(image.Rect(0, 0, srcSize.X, srcSize.Y))
+
+	for i := 0; i < srcSize.X; i++ {
+		for j := 0; j < srcSize.Y; j++ {
+			rgba.Set(i, j, image.White.C)
+		}
+	}
+
+	// Draw the white image.
+	draw.Draw(rgba, rgba.Bounds(), src, src.Bounds().Min, draw.Over)
+
+	// Read the font data.
+	fontBytes, err := ioutil.ReadFile(*fontfile)
+	if err != nil {
+		beego.Error("ReadFile Error: ", err)
+		panic(err)
+	}
+	f, err := freetype.ParseFont(fontBytes)
+	if err != nil {
+		beego.Error("ParseFont Error: ", err)
+		panic(err)
+	}
+
+	// Create a new Context.
+	c := freetype.NewContext()
+	// Set the screen resolution in dots per inch.
+	c.SetDPI(*dpi)
+	// Set Font.
+	c.SetFont(f)
+	// Set FontSize.
+	fontsize := fontSize(texts)
+	c.SetFontSize(fontsize)
+	// Set the clip rectangle for drawing.
+	c.SetClip(rgba.Bounds())
+	// Set the destination image for draw operations.
+	c.SetDst(rgba)
+	// Set the source image for draw operations.
+	c.SetSrc(image.Black)
+
+	switch *hinting {
+	default:
+		c.SetHinting(font.HintingNone)
+	case "full":
+		c.SetHinting(font.HintingFull)
+	}
+
+	beego.Debug(len(texts)*int(fontsize**spacing), int(fixed.Int26_6(fontsize**spacing)))
+
+	// Draw the text.
+	pt := freetype.Pt(50, srcSize.Y-len(texts)*int(c.PointToFixed(fontsize)>>6))
+	pt = changeY(c, pt, texts, fontsize)
+	for _, v := range texts {
+		reg := regexp.MustCompile(`[a-z|0-9|!|?|,|.|;]`)
+		letter := reg.FindAllString(v, -1)
+
+		chineseLen := len([]rune(v)) - len(letter)
+
+		width := float64((srcSize.X - (int(fontsize)*len(letter)/2 + int(fontsize)*chineseLen)) / 2)
+		pt.X = c.PointToFixed(width)
+
+		for _, s := range []string{v} {
+			_, err = c.DrawString(s, pt)
+			if err != nil {
+				beego.Error("Draw Error: ", err)
+				panic(err)
+			}
+		}
+
+		pt.Y += c.PointToFixed(fontsize * *spacing)
+	}
+
+	return rgba
 }
