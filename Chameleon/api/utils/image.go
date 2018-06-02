@@ -96,7 +96,7 @@ func Save(r *http.Request) (string, error) {
 }
 
 // Generate an image with text.
-func Generate(fileName string, texts []string, wordPosition string) {
+func Generate(fileName string, texts []string, wordPosition string, wordColor string) {
 	srcFile, err := os.Open("src/images/origin/" + fileName)
 	if err != nil {
 		beego.Error("Open Error: ", err)
@@ -124,10 +124,15 @@ func Generate(fileName string, texts []string, wordPosition string) {
 		fontBytes []byte
 		imageY    int
 		rgba      *image.RGBA
+		fontColor = image.Black
 	)
 
+	if wordColor == "white" {
+		fontColor = image.White
+	}
+
 	if wordPosition == "inside" {
-		rgba = writeInImage(texts, srcImg)
+		rgba = writeInImage(texts, srcImg, fontColor)
 
 		goto save
 	}
@@ -176,7 +181,7 @@ func Generate(fileName string, texts []string, wordPosition string) {
 	// Set the destination image for draw operations.
 	c.SetDst(rgba)
 	// Set the source image for draw operations.
-	c.SetSrc(image.Black)
+	c.SetSrc(fontColor)
 
 	switch *hinting {
 	default:
@@ -330,12 +335,10 @@ finish:
 	return subImg
 }
 
-func writeInImage(texts []string, src image.Image) *image.RGBA {
+func writeInImage(texts []string, src image.Image, fontColor *image.Uniform) *image.RGBA {
 	src = resize.Resize(fw, 0, src, resize.Lanczos3)
 
 	srcSize := src.Bounds().Size()
-
-	beego.Debug(srcSize)
 
 	rgba := image.NewRGBA(image.Rect(0, 0, srcSize.X, srcSize.Y))
 
@@ -374,7 +377,7 @@ func writeInImage(texts []string, src image.Image) *image.RGBA {
 	// Set the destination image for draw operations.
 	c.SetDst(rgba)
 	// Set the source image for draw operations.
-	c.SetSrc(image.Black)
+	c.SetSrc(fontColor)
 
 	switch *hinting {
 	default:
@@ -382,8 +385,6 @@ func writeInImage(texts []string, src image.Image) *image.RGBA {
 	case "full":
 		c.SetHinting(font.HintingFull)
 	}
-
-	beego.Debug(len(texts)*int(fontsize**spacing), int(fixed.Int26_6(fontsize**spacing)))
 
 	// Draw the text.
 	pt := freetype.Pt(50, srcSize.Y-len(texts)*int(c.PointToFixed(fontsize)>>6))

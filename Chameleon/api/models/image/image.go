@@ -43,7 +43,7 @@ func Add(r *http.Request) (string, int64) {
 	var texts []string
 	json.Unmarshal([]byte(r.FormValue("texts")), &texts)
 
-	utils.Generate(fileName, texts, r.FormValue("position"))
+	utils.Generate(fileName, texts, r.FormValue("position"), r.FormValue("color"))
 
 	generatedPath := "https://www.doublewoodh.club/images/generated/" + fileName
 	originPath := "https://www.doublewoodh.club/images/origin/" + fileName
