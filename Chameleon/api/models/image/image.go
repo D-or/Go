@@ -105,9 +105,30 @@ func GetByUserID(userID int64) []*Image {
 }
 
 // Update - Update the url of image by id.
-func Update(id string) {
+func Update(id int) {
 }
 
 // Delete the url of image by id.
-func Delete(id string) {
+func Delete(id []int) error {
+	o := orm.NewOrm()
+	o.Using("default")
+	err := o.Begin()
+
+	qs := o.QueryTable("image")
+
+	_, err = qs.Filter("Id", id[0]).Delete()
+	if err != nil {
+		err = o.Rollback()
+		return err
+	}
+
+	_, err = qs.Filter("Id", id[1]).Delete()
+	if err != nil {
+		err = o.Rollback()
+		return err
+	}
+
+	o.Commit()
+
+	return nil
 }

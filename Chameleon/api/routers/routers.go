@@ -18,4 +18,5 @@ func init() {
 	// image api
 	beego.Router("/image/getall", &controllers.ImageController{}, "post:GetAll")
 	beego.Router("/image/generate", &controllers.ImageController{}, "post:Generate")
+	beego.Router("/image/delete", &controllers.ImageController{}, "post:Delete")
 }

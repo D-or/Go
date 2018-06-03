@@ -70,3 +70,28 @@ func (ic *ImageController) Generate() {
 finish:
 	ic.ServeJSON()
 }
+
+// Delete image by id.
+func (ic *ImageController) Delete() {
+	var (
+		body map[string][]int
+	)
+
+	json.Unmarshal(ic.Ctx.Input.RequestBody, &body)
+
+	err := image.Delete(body["id"])
+	if err != nil {
+		ic.Data["json"] = map[string]interface{}{
+			"status": 1,
+		}
+
+		goto finish
+	}
+
+	ic.Data["json"] = map[string]interface{}{
+		"status": 0,
+	}
+
+finish:
+	ic.ServeJSON()
+}
