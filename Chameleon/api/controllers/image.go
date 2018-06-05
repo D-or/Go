@@ -79,7 +79,32 @@ func (ic *ImageController) Delete() {
 
 	json.Unmarshal(ic.Ctx.Input.RequestBody, &body)
 
-	err := image.Delete(body["id"])
+	err := image.Delete(body["id"], "image")
+	if err != nil {
+		ic.Data["json"] = map[string]interface{}{
+			"status": 1,
+		}
+
+		goto finish
+	}
+
+	ic.Data["json"] = map[string]interface{}{
+		"status": 0,
+	}
+
+finish:
+	ic.ServeJSON()
+}
+
+// DeleteUploaded - Delete image uploaded by id.
+func (ic *ImageController) DeleteUploaded() {
+	var (
+		body map[string][]int
+	)
+
+	json.Unmarshal(ic.Ctx.Input.RequestBody, &body)
+
+	err := image.Delete(body["id"], "uploaded")
 	if err != nil {
 		ic.Data["json"] = map[string]interface{}{
 			"status": 1,
@@ -102,6 +127,22 @@ func (ic *ImageController) GetUploaded() {
 
 	ic.Data["json"] = map[string]interface{}{
 		"images": uploaded,
+	}
+
+	ic.ServeJSON()
+}
+
+// GetUploadedByUserID - Get all images uploaded by userID.
+func (ic *ImageController) GetUploadedByUserID() {
+	var body map[string]int64
+
+	json.Unmarshal(ic.Ctx.Input.RequestBody, &body)
+	userID := body["userID"]
+
+	images := image.GetUploadedByUserID(userID)
+
+	ic.Data["json"] = map[string]interface{}{
+		"images": images,
 	}
 
 	ic.ServeJSON()

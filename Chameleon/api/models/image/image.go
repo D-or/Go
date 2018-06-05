@@ -84,15 +84,6 @@ func Add(r *http.Request) (string, int64) {
 	return generatedPath, id
 }
 
-// // GetOne - Get the url of image by id.
-// func GetOne(id string) (*Image, error) {
-// 	if v, ok := Images[id]; ok {
-// 		return v, nil
-// 	}
-
-// 	return nil, errors.New("ImageId Not Exist")
-// }
-
 // GetByUserID - Get all images by UserID.
 func GetByUserID(userID int64) []*Image {
 	var images []*Image
@@ -109,28 +100,20 @@ func GetByUserID(userID int64) []*Image {
 	return images
 }
 
-// // Update - Update the url of image by id.
-// func Update(id int) {
-// }
-
 // Delete the url of image by id.
-func Delete(id []int) error {
+func Delete(id []int, table string) error {
 	o := orm.NewOrm()
 	o.Using("default")
 	err := o.Begin()
 
-	qs := o.QueryTable("image")
+	qs := o.QueryTable(table)
 
-	_, err = qs.Filter("Id", id[0]).Delete()
-	if err != nil {
-		err = o.Rollback()
-		return err
-	}
-
-	_, err = qs.Filter("Id", id[1]).Delete()
-	if err != nil {
-		err = o.Rollback()
-		return err
+	for _, i := range id {
+		_, err = qs.Filter("Id", i).Delete()
+		if err != nil {
+			err = o.Rollback()
+			return err
+		}
 	}
 
 	o.Commit()
@@ -146,6 +129,22 @@ func GetUploaded() []*Uploaded {
 	o.Using("default")
 
 	_, err := o.QueryTable("uploaded").All(&uploaded)
+	if err != nil {
+		beego.Error("Get all uploaded image Error: ", err)
+		return nil
+	}
+
+	return uploaded
+}
+
+// GetUploadedByUserID - Get all images uploaded by userID.
+func GetUploadedByUserID(userID int64) []*Uploaded {
+	var uploaded []*Uploaded
+
+	o := orm.NewOrm()
+	o.Using("default")
+
+	_, err := o.QueryTable("uploaded").Filter("Userid", userID).All(&uploaded)
 	if err != nil {
 		beego.Error("Get all uploaded image Error: ", err)
 		return nil
