@@ -46,7 +46,7 @@ const (
 )
 
 // Save the file uploaded.
-func Save(r *http.Request) (string, error) {
+func Save(r *http.Request, path string) (string, error) {
 	image, head, err := r.FormFile("image")
 	if err != nil {
 		beego.Error("Get image Error: ", err)
@@ -66,7 +66,7 @@ func Save(r *http.Request) (string, error) {
 	}
 
 	// Make Dir
-	if err := os.MkdirAll("/root/doublewoodh/generation/src/images/origin", os.ModePerm); err != nil {
+	if err := os.MkdirAll("/root/doublewoodh/generation/src/images/"+path, os.ModePerm); err != nil {
 		beego.Error("Mkdir 'origin' Error: ", err)
 
 		return "", err
@@ -74,7 +74,7 @@ func Save(r *http.Request) (string, error) {
 
 	// Create File
 	fileName := Now() + suffix
-	filePath := fmt.Sprintf("src/images/origin/" + fileName)
+	filePath := fmt.Sprintf("src/images/" + path + "/" + fileName)
 
 	file, err := os.Create(filePath)
 	if err != nil {

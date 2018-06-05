@@ -95,3 +95,34 @@ func (ic *ImageController) Delete() {
 finish:
 	ic.ServeJSON()
 }
+
+// GetUploaded - Get all images uploaded.
+func (ic *ImageController) GetUploaded() {
+	uploaded := image.GetUploaded()
+
+	ic.Data["json"] = map[string]interface{}{
+		"images": uploaded,
+	}
+
+	ic.ServeJSON()
+}
+
+// Upload image.
+func (ic *ImageController) Upload() {
+	pathName, err := utils.Save(ic.Ctx.Request, "upload")
+	if err != nil {
+		ic.Data["json"] = map[string]interface{}{
+			"status": 1,
+		}
+		goto finish
+	}
+
+	image.Upload(ic.Ctx.Request, pathName)
+
+	ic.Data["json"] = map[string]interface{}{
+		"status": 0,
+	}
+
+finish:
+	ic.ServeJSON()
+}

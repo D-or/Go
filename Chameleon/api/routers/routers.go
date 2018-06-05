@@ -19,4 +19,7 @@ func init() {
 	beego.Router("/image/getall", &controllers.ImageController{}, "post:GetAll")
 	beego.Router("/image/generate", &controllers.ImageController{}, "post:Generate")
 	beego.Router("/image/delete", &controllers.ImageController{}, "post:Delete")
+	beego.Router("/image/upload", &controllers.ImageController{}, "post:Upload")
+
+	beego.Router("/image/uploaded/getall", &controllers.ImageController{}, "get:GetUploaded")
 }

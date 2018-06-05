@@ -19,6 +19,7 @@ func init() {
 	orm.RegisterDriver("mysql", orm.DRMySQL)
 
 	orm.RegisterModel(new(image.Image))
+	orm.RegisterModel(new(image.Uploaded))
 	orm.RegisterModel(new(user.User))
 
 	orm.RegisterDataBase("default", "mysql", "chameleon:chameleon@/chameleon?charset=utf8")

@@ -19,11 +19,16 @@ import (
 
 // Image - The struction of image.
 type Image struct {
-	Id      int       `json:"id"     orm:"pk;auto;index"`
-	Userid  int       `json:"userID" orm:"index"`
+	Id      int       `json:"id"      orm:"pk;auto;index"`
+	Userid  int       `json:"userID"`
 	Name    string    `json:"name"`
 	Path    string    `json:"path"`
-	Created time.Time `json:"created"       orm:"auto_now_add;type(datetime)"`
+	Created time.Time `json:"created" orm:"auto_now_add;type(datetime)"`
+}
+
+// Uploaded - The struction of image uploaded.
+type Uploaded struct {
+	Image
 }
 
 func init() {
@@ -34,7 +39,7 @@ func Add(r *http.Request) (string, int64) {
 	o := orm.NewOrm()
 	o.Using("default")
 
-	fileName, err := utils.Save(r)
+	fileName, err := utils.Save(r, "origin")
 	if err != nil {
 		beego.Error("Draw Error: ", err)
 		return "", -1
@@ -104,9 +109,9 @@ func GetByUserID(userID int64) []*Image {
 	return images
 }
 
-// Update - Update the url of image by id.
-func Update(id int) {
-}
+// // Update - Update the url of image by id.
+// func Update(id int) {
+// }
 
 // Delete the url of image by id.
 func Delete(id []int) error {
@@ -129,6 +134,49 @@ func Delete(id []int) error {
 	}
 
 	o.Commit()
+
+	return nil
+}
+
+// GetUploaded - Get all images uploaded.
+func GetUploaded() []*Uploaded {
+	var uploaded []*Uploaded
+
+	o := orm.NewOrm()
+	o.Using("default")
+
+	_, err := o.QueryTable("uploaded").All(&uploaded)
+	if err != nil {
+		beego.Error("Get all uploaded image Error: ", err)
+		return nil
+	}
+
+	return uploaded
+}
+
+// Upload image.
+func Upload(r *http.Request, fileName string) error {
+	o := orm.NewOrm()
+	o.Using("default")
+
+	userID, err := strconv.Atoi(r.FormValue("userID"))
+	if err != nil {
+		beego.Error(err)
+		return err
+	}
+
+	uploadURL := "https://www.doublewoodh.club/images/upload/" + fileName
+
+	uploadImage := new(Uploaded)
+	uploadImage.Userid = userID
+	uploadImage.Name = fileName
+	uploadImage.Path = uploadURL
+
+	_, err = o.Insert(uploadImage)
+	if err != nil {
+		beego.Error("Insert uploaded image Error: ", err)
+		return err
+	}
 
 	return nil
 }
